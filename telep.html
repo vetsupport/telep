@@ -79,7 +79,7 @@
     pointer-events:none;
   }
   #promptTrack{
-    position:absolute; left:0; right:0; padding:0 24px; will-change:transform;
+    position:absolute; left:0; right:0; padding:64px 24px 0; will-change:transform;
     transform: translateY(0px);
   }
   .promptText{
@@ -106,13 +106,22 @@
     display:flex; align-items:center; justify-content:space-between; padding:0 30px; z-index:5;
   }
   .sideBtn{
-    width:52px; height:52px; border-radius:50%; background:rgba(23,24,26,0.65);
-    backdrop-filter:blur(10px); border:1px solid var(--line); color:var(--text);
-    font-size:22px; display:flex; align-items:center; justify-content:center;
+    width:54px; height:54px; border-radius:50%;
+    background:linear-gradient(160deg, rgba(34,35,39,0.85), rgba(20,21,23,0.85));
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border:1px solid rgba(245,245,240,0.14);
+    box-shadow:0 4px 14px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+    color:var(--text); display:flex; align-items:center; justify-content:center;
+    transition:transform .12s ease, background .12s ease;
   }
+  .sideBtn svg{width:24px; height:24px;}
+  .sideBtn:active{transform:scale(0.90); background:rgba(20,21,23,0.95);}
+  .sideCol{display:flex; flex-direction:column; align-items:center; gap:7px;}
+  .sideCol .sideLbl{font-size:10px; color:var(--muted); letter-spacing:.03em;}
   #recordBtn{
     width:76px; height:76px; border-radius:50%; border:4px solid rgba(255,255,255,0.85);
-    background:transparent; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 18px rgba(0,0,0,0.4);
   }
   #recordBtn .core{width:60px; height:60px; border-radius:50%; background:var(--tally); transition:all .2s;}
   #recordBtn.recording .core{width:26px; height:26px; border-radius:8px;}
@@ -204,9 +213,24 @@
     </div>
 
     <div id="bottomBar">
-      <div class="sideBtn" id="flipBtn">⟲</div>
+      <div class="sideCol">
+        <div class="sideBtn" id="flipBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+            <path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          </svg>
+        </div>
+        <span class="sideLbl">Cámara</span>
+      </div>
       <div id="recordBtn"><div class="core"></div></div>
-      <div class="sideBtn" id="restartPromptBtn">↺</div>
+      <div class="sideCol">
+        <div class="sideBtn" id="restartPromptBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>
+          </svg>
+        </div>
+        <span class="sideLbl">Guion</span>
+      </div>
     </div>
   </div>
 
@@ -366,14 +390,22 @@
     scrollPos = 0;
     promptTrack.style.transform = 'translateY(0px)';
     cancelAnimationFrame(scrollRAF);
+    clearTimeout(scrollStartTimeout);
   }
   restartPromptBtn.addEventListener('click', resetPrompt);
 
+  let scrollStartTimeout = null;
   function stepScroll(){
     const speed = parseFloat(speedEl.value) * 0.35;
     scrollPos += speed;
     promptTrack.style.transform = `translateY(-${scrollPos}px)`;
     scrollRAF = requestAnimationFrame(stepScroll);
+  }
+  function beginScrollWithHold(){
+    clearTimeout(scrollStartTimeout);
+    scrollStartTimeout = setTimeout(()=>{
+      if(recording) stepScroll();
+    }, 1600);
   }
 
   function startTimer(){
@@ -418,13 +450,15 @@
       recordBtn.classList.add('recording');
       startTimer();
       scrollPos = 0;
-      stepScroll();
+      promptTrack.style.transform = 'translateY(0px)';
+      beginScrollWithHold();
       await requestWakeLock();
     } else {
       mediaRecorder.stop();
       recording = false;
       recordBtn.classList.remove('recording');
       stopTimer();
+      clearTimeout(scrollStartTimeout);
       cancelAnimationFrame(scrollRAF);
       await releaseWakeLock();
     }
