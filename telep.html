@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Teleprompter Cam</title>
-<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAAE/ElEQVR4nO3c7XHbRhSGUVCTblxBekgT7sLjAjTqIk2kh1SgepwfHjqUTBK7+NrFu+f8TqQl9ejqCoB1mTrw5fu3H63PwHrvr2+X1mdocgABj6FF4Id9QhGP7ai4d/0kIuaePePe5QMLmRJ7hP2y9QcUM6X2aGWz7xAhs8ZW03qTCS1m1tqqoVXfFUJmD2um9eIJLWb2sqatRUGLmb0tbaw6aDFzlCWtVQUtZo5W21xx0GKmlZr2ioIWM62VNjgbtJjpRUmLm9/6hpaeBm0605u5Jh8GLWZ69axNKwdR7gZtOtO7R43+FrSYOYt7rVo5iPIhaNOZs/ncrAlNFEET5VfQ1g3O6rZdE5oogibKyzRZNzi/a8MmNFEETRRBE+VifybJH60PkOrrX//O/jd///PnAScZi6A3UhLw3P8j8PUEvdKSkOc+lrCXE/RCW4b86GMLu56rHAvsGXOLz5NE0JWOjkzUdawchVqGZQUpZ0IX6GVK9nKOngmaKIKe0dtU7O08vRH0E73G0+u5eiDoB3qPpvfztSJoogj6jrNMv7Oc80iCJoqgPznb1DvbefcmaKK49V2h1a1nU7icCU0UQd846yQ867n3IGii2KErmIT9M6GJImiiCJoogiaKoIkiaKIImiiCJoqgieJOYQVP2/XPhCaKoIkiaKLYoSvYZftnQhNF0EQRNFEETRRBE0XQRBE0UQRNFEETRdBEceu7gsdH+2dCE0XQRBE0UezQFeyy/TOhiSJoogiaKIImiqCJImiiCJoogr7R6lmNtc567j0ImijuFFbwtF3/TGiiCPqTs+2jZzvv3gRNlMuX799+tD5Ej86wt5rOvzOhiSLoB3qffr2frxVBP9FrNL2eqweCntFbPL2dpzeCJoqgC/QyFXs5R8/c+i50janF5TwhlzOhKx0dl5jrCHqBoyITcz0rx0J7riBCXk7QK20ZtpDXE/RGPsdYEriAtyfonYi1Db8UEkXQRBE0UQRNFEETRdBEETRRBE0UQRNF0EQRNFEETRRBE0XQRBE0UeKDPsMfXTzKCO9F5F8fvfeFG/2B+1Hek5h/sTLC9Nna7XuWEnfEyiHm9VLew4igS6R8wZYY6bVHBJ3y47KllPcwIuhSI02qq9Fe81BBky/qsl3pNDrix2sPf2imp/fjKCY0UaKCLp00I+yVI07naQoLGuKCNqXHnc7TFBh0jcSoE19TjcigayZPUgA1ryVxOk9TaNDTNF7UYv4pNmjGFB30KFPadP5fdNDTlB+1mD+KecB/K9dAev/in/Gb7wgv769vl9aH2NuSOHsOZsnZev8G3cL769slfuW4SolazM9dpmmakp64m9NjpHsaKeahJvTVSF/gkV7r1cs0/Sy79UFgjWvDw01osgmaKL+CtnZwVrftmtBEETRRPgRt7eBsPjc75LMcZ35gacRryzXuTuSR7hyWah22kH93b6N4uGKI+r6jwxbyfY/W4yFXjjVuA9srbhEv9/SXQFO6Xm3k4q337OLF7FUNUdOTuStxrkMTZTZo16bpRUmLRRNa1LRW2mDxyiFqWqlpr2qHFjVHq22u+pdCUXOUJa0tusohava2tLHFl+1EzV7WtLVJlG6+sIUthuQmN1ZMa9baqqHNQzStqbH1MNz81rdpTak9Wtk1PtOae/YceodNU3GP7aif3E3WA3GPocX62cW+K/AMPfz+9B8mkKcs/muY+AAAAABJRU5ErkJggg==">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
@@ -168,6 +168,19 @@
       <div class="toggle" id="toggleFront">Cámara: Trasera</div>
     </div>
 
+    <div class="row" style="margin-top:14px;">
+      <div class="field">
+        <label>Calidad de video</label>
+        <select id="qualitySel" style="width:100%; background:var(--surface); color:var(--text); border:1px solid var(--line); border-radius:12px; padding:12px; font-size:15px;">
+          <option value="1080p30">1080p · 30 fps (recomendado)</option>
+          <option value="1080p60">1080p · 60 fps (más fluido)</option>
+          <option value="4k30">4K · 30 fps (más nítido, más pesado)</option>
+          <option value="720p30">720p · 30 fps (más liviano)</option>
+        </select>
+      </div>
+    </div>
+    <div class="hint" style="text-align:left;">Nota: el Modo Cinemático real de la app Cámara de Apple no está disponible para apps web — esta es la mejor calidad que Safari permite controlar.</div>
+
     <button id="startBtn">Abrir cámara</button>
     <div class="hint">La primera vez, Safari te pedirá permiso de cámara y micrófono — acepta ambos.</div>
   </div>
@@ -234,6 +247,8 @@
   const saveBtn = document.getElementById('saveBtn');
   const discardBtn = document.getElementById('discardBtn');
 
+  const qualitySel = document.getElementById('qualitySel');
+
   let stream = null;
   let mediaRecorder = null;
   let chunks = [];
@@ -244,6 +259,34 @@
   let scrollPos = 0;
   let timerInterval = null;
   let seconds = 0;
+  let wakeLock = null;
+  let videoTrack = null;
+  let freezeWatchTimer = null;
+  let stalled = false;
+
+  const QUALITY = {
+    '720p30':  { width:{ideal:1280}, height:{ideal:720},  frameRate:{ideal:30} },
+    '1080p30': { width:{ideal:1920}, height:{ideal:1080}, frameRate:{ideal:30} },
+    '1080p60': { width:{ideal:1920}, height:{ideal:1080}, frameRate:{ideal:60} },
+    '4k30':    { width:{ideal:3840}, height:{ideal:2160}, frameRate:{ideal:30} }
+  };
+
+  async function requestWakeLock(){
+    try{
+      if('wakeLock' in navigator){
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', ()=>{ wakeLock = null; });
+      }
+    }catch(e){ console.warn('Wake lock no disponible', e); }
+  }
+  async function releaseWakeLock(){
+    try{ if(wakeLock){ await wakeLock.release(); wakeLock = null; } }catch(e){}
+  }
+  document.addEventListener('visibilitychange', async ()=>{
+    if(document.visibilityState === 'visible' && recording && !wakeLock){
+      await requestWakeLock();
+    }
+  });
 
   toggleMirror.addEventListener('click', ()=>{
     mirrored = !mirrored;
@@ -263,16 +306,38 @@
   async function openCamera(){
     try{
       if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+      const q = QUALITY[qualitySel.value] || QUALITY['1080p30'];
       stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: facingMode },
+        video: Object.assign({ facingMode: facingMode }, q),
         audio: true
       });
       preview.srcObject = stream;
       preview.style.transform = (facingMode === 'user') ? 'scaleX(-1)' : 'none';
+      videoTrack = stream.getVideoTracks()[0] || null;
+      if(videoTrack){
+        videoTrack.onmute = handleTrackFreeze;
+        videoTrack.onended = handleTrackFreeze;
+      }
     }catch(err){
-      alert('No se pudo acceder a la cámara/micrófono. Revisa los permisos de Safari para este sitio en Ajustes.');
+      alert('No se pudo acceder a la cámara/micrófono con esa calidad. Prueba con una calidad menor, o revisa los permisos de Safari para este sitio en Ajustes.');
       console.error(err);
     }
+  }
+
+  function handleTrackFreeze(){
+    if(!recording) return;
+    if(stalled) return;
+    stalled = true;
+    if(mediaRecorder && mediaRecorder.state === 'recording'){
+      mediaRecorder.stop();
+    }
+    recording = false;
+    recordBtn.classList.remove('recording');
+    stopTimer();
+    cancelAnimationFrame(scrollRAF);
+    setTimeout(()=>{
+      alert('Se perdió la señal de video a mitad de la grabación (esto puede pasar si la pantalla se bloqueó o el iPhone entró en ahorro de energía). Se guardó lo grabado hasta ese momento.');
+    }, 300);
   }
 
   startBtn.addEventListener('click', async ()=>{
@@ -335,10 +400,11 @@
     return '';
   }
 
-  recordBtn.addEventListener('click', ()=>{
+  recordBtn.addEventListener('click', async ()=>{
     if(!stream) return;
     if(!recording){
       chunks = [];
+      stalled = false;
       const mimeType = pickMimeType();
       try{
         mediaRecorder = mimeType ? new MediaRecorder(stream, {mimeType}) : new MediaRecorder(stream);
@@ -353,16 +419,19 @@
       startTimer();
       scrollPos = 0;
       stepScroll();
+      await requestWakeLock();
     } else {
       mediaRecorder.stop();
       recording = false;
       recordBtn.classList.remove('recording');
       stopTimer();
       cancelAnimationFrame(scrollRAF);
+      await releaseWakeLock();
     }
   });
 
   function onRecordingStop(){
+    releaseWakeLock();
     const type = mediaRecorder.mimeType || 'video/mp4';
     const blob = new Blob(chunks, {type});
     const url = URL.createObjectURL(blob);
