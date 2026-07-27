@@ -214,6 +214,7 @@
   <!-- CAMERA STAGE -->
   <div id="stage">
     <video id="preview" autoplay playsinline muted></video>
+    <canvas id="captureCanvas" style="display:none;"></canvas>
 
     <div id="promptOverlay">
       <div id="promptTrack"><div class="promptText" id="promptText"></div></div>
@@ -473,9 +474,49 @@
     promptText.style.fontSize = fontSizeEl.value + 'px';
   });
 
+  const captureCanvas = document.getElementById('captureCanvas');
+  const captureCtx = captureCanvas.getContext('2d', {alpha:false});
+  let canvasStream = null;
+  let drawLoopActive = false;
+
+  function drawLoop(){
+    if(!drawLoopActive) return;
+    if(preview.videoWidth){
+      if(captureCanvas.width !== preview.videoWidth || captureCanvas.height !== preview.videoHeight){
+        captureCanvas.width = preview.videoWidth;
+        captureCanvas.height = preview.videoHeight;
+      }
+      try{ captureCtx.drawImage(preview, 0, 0, captureCanvas.width, captureCanvas.height); }catch(e){}
+    }
+    requestAnimationFrame(drawLoop);
+  }
+
+  function startCanvasCapture(){
+    stopCanvasCapture();
+    captureCanvas.width = preview.videoWidth || 1280;
+    captureCanvas.height = preview.videoHeight || 720;
+    drawLoopActive = true;
+    drawLoop();
+    canvasStream = captureCanvas.captureStream(30);
+  }
+
+  function stopCanvasCapture(){
+    drawLoopActive = false;
+    if(canvasStream){ canvasStream.getTracks().forEach(t=>t.stop()); canvasStream = null; }
+  }
+
+  // Lo que graba el MediaRecorder: video del canvas (siempre fresco) + audio real del micrófono.
+  function getRecordingStream(){
+    if(canvasStream && stream){
+      return new MediaStream([...canvasStream.getVideoTracks(), ...stream.getAudioTracks()]);
+    }
+    return stream;
+  }
+
   async function openCamera(){
     try{
       if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+      stopCanvasCapture();
       const q = QUALITY[qualitySel.value] || QUALITY['1080p30'];
       stream = await navigator.mediaDevices.getUserMedia({
         video: Object.assign({ facingMode: facingMode }, q),
@@ -488,6 +529,12 @@
         videoTrack.onmute = handleTrackFreeze;
         videoTrack.onended = handleTrackFreeze;
       }
+      await new Promise((resolve)=>{
+        if(preview.readyState >= 1 && preview.videoWidth){ resolve(); return; }
+        preview.onloadedmetadata = ()=> resolve();
+        setTimeout(resolve, 1500); // por si el evento no llega, no bloquear para siempre
+      });
+      startCanvasCapture();
     }catch(err){
       alert('No se pudo acceder a la cámara/micrófono con esa calidad. Prueba con una calidad menor, o revisa los permisos de Safari para este sitio en Ajustes.');
       console.error(err);
@@ -528,7 +575,7 @@
 
   closeBtn.addEventListener('click', ()=>{
     if(recording) return;
-    if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+    stopCameraHardware();
     stage.classList.remove('on');
     setup.style.display = 'flex';
     resetPrompt();
@@ -588,10 +635,11 @@
   function startSegment(){
     chunks = [];
     const mimeType = pickMimeType();
+    const recStream = getRecordingStream();
     try{
-      mediaRecorder = mimeType ? new MediaRecorder(stream, {mimeType}) : new MediaRecorder(stream);
+      mediaRecorder = mimeType ? new MediaRecorder(recStream, {mimeType}) : new MediaRecorder(recStream);
     }catch(e){
-      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder = new MediaRecorder(recStream);
     }
     mediaRecorder.ondataavailable = (e)=>{ if(e.data && e.data.size > 0) chunks.push(e.data); };
     mediaRecorder.onstop = onSegmentStop;
@@ -648,6 +696,7 @@
   });
 
   function stopCameraHardware(){
+    stopCanvasCapture();
     if(stream){
       stream.getTracks().forEach(t=>t.stop());
       stream = null;
