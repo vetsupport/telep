@@ -144,27 +144,16 @@
   #result.on{display:flex;}
   #result h2{font-size:19px; margin:0 0 4px;}
   #result p{color:var(--muted); font-size:13px; margin:0 0 16px;}
-  video#playback{width:100%; flex:1; border-radius:16px; background:#000; object-fit:contain;}
-  #segmentsList{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; gap:10px; margin:4px 0 12px;}
-  .segCard{
-    background:var(--surface); border:1px solid var(--line); border-radius:14px;
-    padding:10px; display:flex; gap:12px; align-items:center;
+  video#playback{width:100%; height:100%; flex:1; min-width:0; min-height:0; border-radius:16px; background:#000; object-fit:contain;}
+  #playbackWrap{position:relative; flex:1; min-height:0; display:flex; align-items:stretch;}
+  #playToggle{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:64px; height:64px; border-radius:50%; background:rgba(50,51,56,0.85);
+    backdrop-filter:blur(10px); border:1px solid rgba(245,245,240,0.25); display:flex; align-items:center; justify-content:center;
+    transition:opacity .15s; z-index:2;
   }
-  .segCard .segVideoWrap{position:relative; width:96px; height:74px; border-radius:10px; overflow:hidden; background:#000; flex-shrink:0;}
-  .segCard video{width:100%; height:100%; object-fit:cover;}
-  .segCard .segPlay{
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    background:rgba(0,0,0,0.25); transition:opacity .15s;
-  }
-  .segCard .segPlay svg{width:22px; height:22px; fill:#fff;}
-  .segCard .segPlay.hidden{opacity:0; pointer-events:none;}
-  .segCard .segInfo{flex:1; min-width:0;}
-  .segCard .segInfo .segTitle{font-size:14px; font-weight:600; color:var(--text);}
-  .segCard .segInfo .segMeta{font-size:12px; color:var(--muted); margin-top:2px;}
-  .segCard .segRemove{
-    width:32px; height:32px; border-radius:50%; background:var(--surface-2); color:var(--text);
-    border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;
-  }
+  #playToggle svg{width:28px; height:28px; fill:#fff;}
+  #playToggle.hidden{opacity:0; pointer-events:none;}
   .resultActions{display:flex; gap:12px; margin-top:16px;}
   .segPicker{display:none; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:4px;}
   .segPicker.on{display:flex;}
@@ -658,8 +647,18 @@
     }
   });
 
+  function stopCameraHardware(){
+    if(stream){
+      stream.getTracks().forEach(t=>t.stop());
+      stream = null;
+      videoTrack = null;
+      preview.srcObject = null;
+    }
+  }
+
   function finishRecording(){
     releaseWakeLock();
+    stopCameraHardware();
     const usable = segments.filter(s => s.blob && s.blob.size > 0);
     if(usable.length === 0){
       alert('No se guardó ningún video — puede que la grabación se haya cortado demasiado rápido. Intenta de nuevo.');
