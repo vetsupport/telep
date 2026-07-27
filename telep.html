@@ -148,7 +148,8 @@
   .resultActions{display:flex; gap:12px; margin-top:16px;}
   .resultActions button, .resultActions a{
     flex:1; text-align:center; padding:15px; border-radius:14px; font-size:15px; font-weight:700;
-    border:none; text-decoration:none; display:block;
+    border:none; text-decoration:none; display:block; -webkit-appearance:none; appearance:none;
+    font-family:inherit; cursor:pointer;
   }
   #saveBtn{background:var(--text); color:#0A0A0B;}
   #discardBtn{background:var(--surface); color:var(--text); border:1px solid var(--line);}
@@ -236,12 +237,12 @@
 
   <!-- RESULT -->
   <div id="result">
-    <h2>Video listo</h2>
-    <p>Reprodúcelo, y toca "Guardar" para abrirlo — desde ahí usa el botón compartir de Safari y elige "Guardar video" para mandarlo a Fotos.</p>
+    <h2 id="resultTitle">Video listo</h2>
+    <p id="resultSub">Toca "Guardar en Fotos" y elige "Guardar video" en el panel que aparece — va directo a tu carrete.</p>
     <video id="playback" controls playsinline></video>
     <div class="resultActions">
       <button id="discardBtn">Descartar</button>
-      <a id="saveBtn" download="video.mp4">Guardar</a>
+      <button id="saveBtn">Guardar en Fotos</button>
     </div>
   </div>
 
@@ -270,8 +271,13 @@
   const playback = document.getElementById('playback');
   const saveBtn = document.getElementById('saveBtn');
   const discardBtn = document.getElementById('discardBtn');
+  const resultTitle = document.getElementById('resultTitle');
+  const resultSub = document.getElementById('resultSub');
 
   const qualitySel = document.getElementById('qualitySel');
+
+  let pendingBlob = null;
+  let pendingType = 'video/mp4';
 
   let stream = null;
   let mediaRecorder = null;
@@ -294,6 +300,68 @@
     '1080p60': { width:{ideal:1920}, height:{ideal:1080}, frameRate:{ideal:60} },
     '4k30':    { width:{ideal:3840}, height:{ideal:2160}, frameRate:{ideal:30} }
   };
+
+  // ---- Respaldo local (para no perder el video si se cierra la app) ----
+  const DB_NAME = 'telepBackupDB';
+  const STORE = 'recordings';
+  function openBackupDB(){
+    return new Promise((resolve, reject)=>{
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = ()=>{ req.result.createObjectStore(STORE); };
+      req.onsuccess = ()=> resolve(req.result);
+      req.onerror = ()=> reject(req.error);
+    });
+  }
+  async function saveBackup(blob, type){
+    try{
+      const db = await openBackupDB();
+      await new Promise((resolve, reject)=>{
+        const tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).put({blob, type}, 'last');
+        tx.oncomplete = resolve;
+        tx.onerror = ()=> reject(tx.error);
+      });
+    }catch(e){ console.warn('No se pudo respaldar el video localmente', e); }
+  }
+  async function loadBackup(){
+    try{
+      const db = await openBackupDB();
+      return await new Promise((resolve, reject)=>{
+        const tx = db.transaction(STORE, 'readonly');
+        const req = tx.objectStore(STORE).get('last');
+        req.onsuccess = ()=> resolve(req.result || null);
+        req.onerror = ()=> reject(req.error);
+      });
+    }catch(e){ console.warn(e); return null; }
+  }
+  async function clearBackup(){
+    try{
+      const db = await openBackupDB();
+      await new Promise((resolve, reject)=>{
+        const tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).delete('last');
+        tx.oncomplete = resolve;
+        tx.onerror = ()=> reject(tx.error);
+      });
+    }catch(e){ console.warn(e); }
+  }
+
+  // ---- Compartir nativo (abre el panel de iOS con "Guardar video") ----
+  async function tryNativeShare(blob, filename){
+    try{
+      if(navigator.canShare && navigator.share){
+        const file = new File([blob], filename, {type: blob.type});
+        if(navigator.canShare({files:[file]})){
+          await navigator.share({files:[file]});
+          return true;
+        }
+      }
+    }catch(e){
+      if(e && e.name === 'AbortError') return true; // el usuario cerró el panel, no es error
+      console.warn('Share falló, uso alternativa', e);
+    }
+    return false;
+  }
 
   async function requestWakeLock(){
     try{
@@ -468,32 +536,67 @@
     releaseWakeLock();
     const type = mediaRecorder.mimeType || 'video/mp4';
     const blob = new Blob(chunks, {type});
+    pendingBlob = blob;
+    pendingType = type;
     const url = URL.createObjectURL(blob);
     playback.src = url;
-    const ext = type.includes('mp4') ? 'mp4' : 'webm';
-    saveBtn.href = url;
-    saveBtn.download = 'teleprompter-' + Date.now() + '.' + ext;
+    resultTitle.textContent = 'Video listo';
+    resultSub.textContent = 'Toca "Guardar en Fotos" y elige "Guardar video" en el panel que aparece — va directo a tu carrete.';
+    saveBackup(blob, type);
     stage.classList.remove('on');
     result.classList.add('on');
   }
 
-  discardBtn.addEventListener('click', ()=>{
+  discardBtn.addEventListener('click', async ()=>{
+    await clearBackup();
+    pendingBlob = null;
     result.classList.remove('on');
-    stage.classList.add('on');
     playback.pause();
     playback.removeAttribute('src');
     playback.load();
+    if(stream){
+      stage.classList.add('on');
+    } else {
+      setup.style.display = 'flex';
+      resetPrompt();
+    }
   });
 
-  saveBtn.addEventListener('click', ()=>{
-    setTimeout(()=>{
-      result.classList.remove('on');
-      setup.style.display = 'flex';
-      stage.classList.remove('on');
-      if(stream){ stream.getTracks().forEach(t=>t.stop()); }
-      resetPrompt();
-    }, 600);
+  saveBtn.addEventListener('click', async ()=>{
+    if(!pendingBlob) return;
+    saveBtn.textContent = 'Abriendo…';
+    const ext = pendingType.includes('mp4') ? 'mp4' : 'webm';
+    const filename = 'teleprompter-' + Date.now() + '.' + ext;
+    const shared = await tryNativeShare(pendingBlob, filename);
+    if(!shared){
+      const url = URL.createObjectURL(pendingBlob);
+      window.open(url, '_blank');
+      alert('Se abrió el video en una pestaña nueva. Mantén el dedo presionado sobre el video y elige "Guardar video" para mandarlo a Fotos.');
+    }
+    saveBtn.textContent = 'Guardar en Fotos';
+    await clearBackup();
+    pendingBlob = null;
+    result.classList.remove('on');
+    setup.style.display = 'flex';
+    stage.classList.remove('on');
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+    resetPrompt();
   });
+
+  // ---- Al abrir la app, revisa si quedó un video sin guardar de una sesión anterior ----
+  (async function checkRecovery(){
+    const record = await loadBackup();
+    if(record && record.blob){
+      pendingBlob = record.blob;
+      pendingType = record.type || 'video/mp4';
+      const url = URL.createObjectURL(record.blob);
+      playback.src = url;
+      resultTitle.textContent = 'Recuperamos tu último video';
+      resultSub.textContent = 'No se había guardado antes de cerrar la app. Tócalo para revisarlo y luego guárdalo en Fotos.';
+      setup.style.display = 'none';
+      result.classList.add('on');
+    }
+  })();
 
 })();
 </script>
