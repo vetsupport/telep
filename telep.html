@@ -145,17 +145,34 @@
   #result h2{font-size:19px; margin:0 0 4px;}
   #result p{color:var(--muted); font-size:13px; margin:0 0 16px;}
   video#playback{width:100%; flex:1; border-radius:16px; background:#000; object-fit:contain;}
-  #playbackWrap{position:relative; flex:1; display:flex; min-height:0;}
-  #playbackWrap video{flex:1;}
-  #playToggle{
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    width:64px; height:64px; border-radius:50%; background:rgba(23,24,26,0.7);
-    backdrop-filter:blur(10px); border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
-    transition:opacity .15s;
+  #segmentsList{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; gap:10px; margin:4px 0 12px;}
+  .segCard{
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:10px; display:flex; gap:12px; align-items:center;
   }
-  #playToggle svg{width:28px; height:28px; fill:#fff;}
-  #playToggle.hidden{opacity:0; pointer-events:none;}
+  .segCard .segVideoWrap{position:relative; width:96px; height:74px; border-radius:10px; overflow:hidden; background:#000; flex-shrink:0;}
+  .segCard video{width:100%; height:100%; object-fit:cover;}
+  .segCard .segPlay{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.25); transition:opacity .15s;
+  }
+  .segCard .segPlay svg{width:22px; height:22px; fill:#fff;}
+  .segCard .segPlay.hidden{opacity:0; pointer-events:none;}
+  .segCard .segInfo{flex:1; min-width:0;}
+  .segCard .segInfo .segTitle{font-size:14px; font-weight:600; color:var(--text);}
+  .segCard .segInfo .segMeta{font-size:12px; color:var(--muted); margin-top:2px;}
+  .segCard .segRemove{
+    width:32px; height:32px; border-radius:50%; background:var(--surface-2); color:var(--text);
+    border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;
+  }
   .resultActions{display:flex; gap:12px; margin-top:16px;}
+  .segPicker{display:none; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:4px;}
+  .segPicker.on{display:flex;}
+  .segPill{
+    flex:none; padding:8px 14px; border-radius:20px; font-size:13px; font-weight:600;
+    background:var(--surface); color:var(--muted); border:1px solid var(--line); white-space:nowrap;
+  }
+  .segPill.active{background:var(--tally); color:#fff; border-color:var(--tally);}
   .resultActions button, .resultActions a{
     flex:1; text-align:center; padding:15px; border-radius:14px; font-size:15px; font-weight:700;
     border:none; text-decoration:none; display:block; -webkit-appearance:none; appearance:none;
@@ -249,6 +266,7 @@
   <div id="result">
     <h2 id="resultTitle">Video listo</h2>
     <p id="resultSub">Toca "Guardar en Fotos" y elige "Guardar video" en el panel que aparece — va directo a tu carrete.</p>
+    <div id="segmentPicker" class="segPicker"></div>
     <div id="playbackWrap">
       <video id="playback" playsinline webkit-playsinline disablePictureInPicture></video>
       <div id="playToggle">
@@ -259,6 +277,7 @@
       <button id="discardBtn">Descartar</button>
       <button id="saveBtn">Guardar en Fotos</button>
     </div>
+    <button id="saveAllBtn" style="display:none; margin-top:10px; width:100%; padding:13px; border-radius:14px; font-size:14px; font-weight:700; background:var(--surface); color:var(--text); border:1px solid var(--line); -webkit-appearance:none;">Guardar todas las tomas juntas</button>
   </div>
 
 </div>
@@ -290,6 +309,40 @@
   const discardBtn = document.getElementById('discardBtn');
   const resultTitle = document.getElementById('resultTitle');
   const resultSub = document.getElementById('resultSub');
+  const segmentPicker = document.getElementById('segmentPicker');
+  const saveAllBtn = document.getElementById('saveAllBtn');
+
+  let currentSegments = [];
+  let currentSegIdx = 0;
+
+  function renderSegmentPicker(){
+    segmentPicker.classList.toggle('on', currentSegments.length > 1);
+    saveAllBtn.style.display = currentSegments.length > 1 ? 'block' : 'none';
+    segmentPicker.innerHTML = '';
+    currentSegments.forEach((seg, i)=>{
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'segPill' + (i === currentSegIdx ? ' active' : '');
+      b.textContent = 'Toma ' + seg.index;
+      b.addEventListener('click', ()=> selectSegment(i));
+      segmentPicker.appendChild(b);
+    });
+  }
+
+  function selectSegment(i){
+    currentSegIdx = i;
+    const seg = currentSegments[i];
+    pendingBlob = seg.blob;
+    pendingType = seg.type;
+    playback.pause();
+    playback.src = URL.createObjectURL(seg.blob);
+    renderSegmentPicker();
+  }
+
+  function buildSegmentPicker(segs){
+    currentSegments = segs.slice();
+    selectSegment(currentSegments.length - 1);
+  }
 
   const qualitySel = document.getElementById('qualitySel');
 
@@ -329,12 +382,12 @@
       req.onerror = ()=> reject(req.error);
     });
   }
-  async function saveBackup(blob, type){
+  async function saveBackupSegments(segs){
     try{
       const db = await openBackupDB();
       await new Promise((resolve, reject)=>{
         const tx = db.transaction(STORE, 'readwrite');
-        tx.objectStore(STORE).put({blob, type}, 'last');
+        tx.objectStore(STORE).put({segments: segs}, 'last');
         tx.oncomplete = resolve;
         tx.onerror = ()=> reject(tx.error);
       });
@@ -456,13 +509,15 @@
     if(!recording) return;
     if(stalled) return;
     stalled = true;
+    recording = false;
+    clearTimeout(segmentTimer);
     if(mediaRecorder && mediaRecorder.state === 'recording'){
       mediaRecorder.stop();
     }
-    recording = false;
     recordBtn.classList.remove('recording');
     stopTimer();
     cancelAnimationFrame(scrollRAF);
+    releaseWakeLock();
     setTimeout(()=>{
       alert('Se perdió la señal de video a mitad de la grabación (esto puede pasar si la pantalla se bloqueó o el iPhone entró en ahorro de energía). Se guardó lo grabado hasta ese momento.');
     }, 300);
@@ -536,20 +591,49 @@
     return '';
   }
 
+  let segments = [];
+  let segmentTimer = null;
+  let segIndex = 0;
+  const SEGMENT_MS = 10000;
+
+  function startSegment(){
+    chunks = [];
+    const mimeType = pickMimeType();
+    try{
+      mediaRecorder = mimeType ? new MediaRecorder(stream, {mimeType}) : new MediaRecorder(stream);
+    }catch(e){
+      mediaRecorder = new MediaRecorder(stream);
+    }
+    mediaRecorder.ondataavailable = (e)=>{ if(e.data && e.data.size > 0) chunks.push(e.data); };
+    mediaRecorder.onstop = onSegmentStop;
+    mediaRecorder.start();
+    segmentTimer = setTimeout(()=>{
+      if(recording && mediaRecorder && mediaRecorder.state === 'recording'){
+        mediaRecorder.stop(); // cuts this segment; onSegmentStop starts the next one if still recording
+      }
+    }, SEGMENT_MS);
+  }
+
+  function onSegmentStop(){
+    const type = mediaRecorder.mimeType || 'video/mp4';
+    const blob = new Blob(chunks, {type});
+    segIndex += 1;
+    const seg = { blob, type, index: segIndex };
+    segments.push(seg);
+    saveBackupSegments(segments);
+    if(recording){
+      startSegment(); // sigue grabando en una toma nueva, sin cortar la experiencia del usuario
+    } else {
+      finishRecording();
+    }
+  }
+
   recordBtn.addEventListener('click', async ()=>{
     if(!stream) return;
     if(!recording){
-      chunks = [];
+      segments = [];
+      segIndex = 0;
       stalled = false;
-      const mimeType = pickMimeType();
-      try{
-        mediaRecorder = mimeType ? new MediaRecorder(stream, {mimeType}) : new MediaRecorder(stream);
-      }catch(e){
-        mediaRecorder = new MediaRecorder(stream);
-      }
-      mediaRecorder.ondataavailable = (e)=>{ if(e.data && e.data.size > 0) chunks.push(e.data); };
-      mediaRecorder.onstop = onRecordingStop;
-      mediaRecorder.start();
       recording = true;
       recordBtn.classList.add('recording');
       startTimer();
@@ -557,35 +641,46 @@
       promptTrack.style.transform = 'translateY(0px)';
       beginScrollWithHold();
       await requestWakeLock();
+      startSegment();
     } else {
-      mediaRecorder.stop();
       recording = false;
       recordBtn.classList.remove('recording');
       stopTimer();
       clearTimeout(scrollStartTimeout);
+      clearTimeout(segmentTimer);
       cancelAnimationFrame(scrollRAF);
       await releaseWakeLock();
+      if(mediaRecorder && mediaRecorder.state === 'recording'){
+        mediaRecorder.stop(); // dispara onSegmentStop -> finishRecording (recording ya es false)
+      } else {
+        finishRecording();
+      }
     }
   });
 
-  function onRecordingStop(){
+  function finishRecording(){
     releaseWakeLock();
-    const type = mediaRecorder.mimeType || 'video/mp4';
-    const blob = new Blob(chunks, {type});
-    pendingBlob = blob;
-    pendingType = type;
-    const url = URL.createObjectURL(blob);
-    playback.src = url;
-    resultTitle.textContent = 'Video listo';
-    resultSub.textContent = 'Toca "Guardar en Fotos" y elige "Guardar video" en el panel que aparece — va directo a tu carrete.';
-    saveBackup(blob, type);
+    const usable = segments.filter(s => s.blob && s.blob.size > 0);
+    if(usable.length === 0){
+      alert('No se guardó ningún video — puede que la grabación se haya cortado demasiado rápido. Intenta de nuevo.');
+      stage.classList.remove('on');
+      setup.style.display = 'flex';
+      return;
+    }
+    if(usable.length === 1){
+      resultTitle.textContent = 'Video listo';
+      resultSub.textContent = 'Toca "Guardar en Fotos" y elige "Guardar video" en el panel que aparece — va directo a tu carrete.';
+    } else {
+      resultTitle.textContent = `Se guardó en ${usable.length} tomas de ~10s`;
+      resultSub.textContent = 'Grabaste más de 10 segundos, así que se dividió en tomas cortas por seguridad (si una se traba, no pierdes las demás). Revisa y guarda cada una.';
+    }
+    buildSegmentPicker(usable);
+    saveBackupSegments(usable);
     stage.classList.remove('on');
     result.classList.add('on');
   }
 
-  discardBtn.addEventListener('click', async ()=>{
-    await clearBackup();
-    pendingBlob = null;
+  function exitToStartOrCamera(){
     result.classList.remove('on');
     playback.pause();
     playback.removeAttribute('src');
@@ -596,13 +691,61 @@
       setup.style.display = 'flex';
       resetPrompt();
     }
+  }
+
+  saveAllBtn.addEventListener('click', async ()=>{
+    if(currentSegments.length === 0) return;
+    saveAllBtn.textContent = 'Abriendo…';
+    try{
+      const files = currentSegments.map((seg, i)=>{
+        const ext = (seg.type || 'video/mp4').includes('mp4') ? 'mp4' : 'webm';
+        return new File([seg.blob], `teleprompter-toma${seg.index}.${ext}`, {type: seg.type});
+      });
+      let shared = false;
+      if(navigator.canShare && navigator.share && navigator.canShare({files})){
+        await navigator.share({files});
+        shared = true;
+      }
+      if(!shared){
+        alert('Tu iPhone no permite compartir varias a la vez desde aquí. Guarda las tomas una por una con el botón "Guardar en Fotos".');
+        saveAllBtn.textContent = 'Guardar todas las tomas juntas';
+        return;
+      }
+      await clearBackup();
+      currentSegments = [];
+      segments = [];
+      pendingBlob = null;
+      result.classList.remove('on');
+      setup.style.display = 'flex';
+      stage.classList.remove('on');
+      if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+      resetPrompt();
+    }catch(e){
+      if(e && e.name !== 'AbortError') console.warn('Error al compartir varias tomas', e);
+      saveAllBtn.textContent = 'Guardar todas las tomas juntas';
+    }
+  });
+
+  discardBtn.addEventListener('click', async ()=>{
+    currentSegments.splice(currentSegIdx, 1);
+    segments = currentSegments;
+    if(currentSegments.length === 0){
+      await clearBackup();
+      pendingBlob = null;
+      exitToStartOrCamera();
+    } else {
+      currentSegIdx = Math.min(currentSegIdx, currentSegments.length - 1);
+      selectSegment(currentSegIdx);
+      await saveBackupSegments(currentSegments);
+    }
   });
 
   saveBtn.addEventListener('click', async ()=>{
     if(!pendingBlob) return;
     saveBtn.textContent = 'Abriendo…';
     const ext = pendingType.includes('mp4') ? 'mp4' : 'webm';
-    const filename = 'teleprompter-' + Date.now() + '.' + ext;
+    const takeNum = (currentSegments[currentSegIdx] && currentSegments[currentSegIdx].index) || 1;
+    const filename = 'teleprompter-' + Date.now() + '-toma' + takeNum + '.' + ext;
     const shared = await tryNativeShare(pendingBlob, filename);
     if(!shared){
       const url = URL.createObjectURL(pendingBlob);
@@ -610,26 +753,34 @@
       alert('Se abrió el video en una pestaña nueva. Mantén el dedo presionado sobre el video y elige "Guardar video" para mandarlo a Fotos.');
     }
     saveBtn.textContent = 'Guardar en Fotos';
-    await clearBackup();
-    pendingBlob = null;
-    result.classList.remove('on');
-    setup.style.display = 'flex';
-    stage.classList.remove('on');
-    if(stream){ stream.getTracks().forEach(t=>t.stop()); }
-    resetPrompt();
+    currentSegments.splice(currentSegIdx, 1);
+    segments = currentSegments;
+    if(currentSegments.length === 0){
+      await clearBackup();
+      pendingBlob = null;
+      result.classList.remove('on');
+      setup.style.display = 'flex';
+      stage.classList.remove('on');
+      if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+      resetPrompt();
+    } else {
+      currentSegIdx = Math.min(currentSegIdx, currentSegments.length - 1);
+      selectSegment(currentSegIdx);
+      await saveBackupSegments(currentSegments);
+    }
   });
 
-  // ---- Al abrir la app, revisa si quedó un video sin guardar de una sesión anterior ----
+  // ---- Al abrir la app, revisa si quedaron tomas sin guardar de una sesión anterior ----
   (async function checkRecovery(){
     const record = await loadBackup();
-    if(record && record.blob){
-      pendingBlob = record.blob;
-      pendingType = record.type || 'video/mp4';
-      const url = URL.createObjectURL(record.blob);
-      playback.src = url;
-      resultTitle.textContent = 'Recuperamos tu último video';
-      resultSub.textContent = 'No se había guardado antes de cerrar la app. Tócalo para revisarlo y luego guárdalo en Fotos.';
+    if(record && record.segments && record.segments.length){
+      const usable = record.segments;
+      resultTitle.textContent = usable.length > 1
+        ? `Recuperamos ${usable.length} tomas sin guardar`
+        : 'Recuperamos tu último video';
+      resultSub.textContent = 'No se había guardado antes de cerrar la app. Revísalo y guárdalo en Fotos.';
       setup.style.display = 'none';
+      buildSegmentPicker(usable);
       result.classList.add('on');
     }
   })();
