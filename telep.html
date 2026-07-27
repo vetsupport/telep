@@ -145,6 +145,16 @@
   #result h2{font-size:19px; margin:0 0 4px;}
   #result p{color:var(--muted); font-size:13px; margin:0 0 16px;}
   video#playback{width:100%; flex:1; border-radius:16px; background:#000; object-fit:contain;}
+  #playbackWrap{position:relative; flex:1; display:flex; min-height:0;}
+  #playbackWrap video{flex:1;}
+  #playToggle{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:64px; height:64px; border-radius:50%; background:rgba(23,24,26,0.7);
+    backdrop-filter:blur(10px); border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
+    transition:opacity .15s;
+  }
+  #playToggle svg{width:28px; height:28px; fill:#fff;}
+  #playToggle.hidden{opacity:0; pointer-events:none;}
   .resultActions{display:flex; gap:12px; margin-top:16px;}
   .resultActions button, .resultActions a{
     flex:1; text-align:center; padding:15px; border-radius:14px; font-size:15px; font-weight:700;
@@ -239,7 +249,12 @@
   <div id="result">
     <h2 id="resultTitle">Video listo</h2>
     <p id="resultSub">Toca "Guardar en Fotos" y elige "Guardar video" en el panel que aparece — va directo a tu carrete.</p>
-    <video id="playback" controls playsinline></video>
+    <div id="playbackWrap">
+      <video id="playback" playsinline webkit-playsinline disablePictureInPicture></video>
+      <div id="playToggle">
+        <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </div>
+    </div>
     <div class="resultActions">
       <button id="discardBtn">Descartar</button>
       <button id="saveBtn">Guardar en Fotos</button>
@@ -269,6 +284,8 @@
   const toggleMirror = document.getElementById('toggleMirror');
   const toggleFront = document.getElementById('toggleFront');
   const playback = document.getElementById('playback');
+  const playToggle = document.getElementById('playToggle');
+  const playIcon = document.getElementById('playIcon');
   const saveBtn = document.getElementById('saveBtn');
   const discardBtn = document.getElementById('discardBtn');
   const resultTitle = document.getElementById('resultTitle');
@@ -362,6 +379,25 @@
     }
     return false;
   }
+
+  const PLAY_PATH = '<path d="M8 5v14l11-7z"/>';
+  const PAUSE_PATH = '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>';
+
+  playToggle.addEventListener('click', ()=>{
+    if(playback.paused){ playback.play(); } else { playback.pause(); }
+  });
+  playback.addEventListener('play', ()=>{
+    playIcon.innerHTML = PAUSE_PATH;
+    playToggle.classList.add('hidden');
+  });
+  playback.addEventListener('pause', ()=>{
+    playIcon.innerHTML = PLAY_PATH;
+    playToggle.classList.remove('hidden');
+  });
+  playback.addEventListener('ended', ()=>{
+    playIcon.innerHTML = PLAY_PATH;
+    playToggle.classList.remove('hidden');
+  });
 
   async function requestWakeLock(){
     try{
