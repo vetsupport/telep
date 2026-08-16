@@ -72,14 +72,14 @@
   video#preview{width:100%; height:100%; object-fit:cover; background:#000;}
 
   #promptOverlay{
-    position:absolute; left:0; right:0; top:0;
-    height:44%; overflow:hidden;
+    position:absolute; left:0; right:0;
+    bottom:calc(env(safe-area-inset-bottom) + 118px);
+    height:42%; overflow:hidden;
     background:linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.35) 70%, rgba(0,0,0,0) 100%);
-    padding-top: env(safe-area-inset-top);
     pointer-events:none;
   }
   #promptTrack{
-    position:absolute; left:0; right:0; padding:64px 24px 0; will-change:transform;
+    position:absolute; left:0; right:0; padding:20px 24px 40px; will-change:transform;
     transform: translateY(0px);
   }
   .promptText{
@@ -126,18 +126,17 @@
   #recordBtn .core{width:60px; height:60px; border-radius:50%; background:var(--tally); transition:all .2s;}
   #recordBtn.recording .core{width:26px; height:26px; border-radius:8px;}
 
-  #speedStrip{
-    position:absolute; right:14px; top:50%; transform:translateY(-50%); z-index:5;
-    display:flex; flex-direction:column; align-items:center; gap:10px;
-    background:rgba(23,24,26,0.6); backdrop-filter:blur(10px); border:1px solid var(--line);
-    border-radius:18px; padding:12px 8px;
+  #speedPill{gap:2px; padding:6px;}
+  #speedPill .lbl{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; padding:0 4px 0 6px;}
+  .stepBtn{
+    -webkit-appearance:none; appearance:none; border:none; width:30px; height:30px; border-radius:50%;
+    background:rgba(245,245,240,0.10); color:var(--text); font-size:18px; font-weight:700; line-height:1;
+    display:flex; align-items:center; justify-content:center; font-family:inherit; padding:0;
   }
-  #speedStrip input[type=range]{
-    -webkit-appearance:none; writing-mode:vertical-lr; direction:rtl; width:24px; height:120px;
+  .stepBtn:active{background:var(--tally); transform:scale(0.92);}
+  #speedValue{
+    min-width:22px; text-align:center; font-variant-numeric:tabular-nums; font-weight:700; font-size:15px;
   }
-  #speedStrip input[type=range]::-webkit-slider-runnable-track{width:4px; background:var(--surface-2); border-radius:2px;}
-  #speedStrip input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--tally); border:2px solid var(--text);}
-  #speedStrip .lbl{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em;}
 
   /* ---------- RESULT SCREEN ---------- */
   #result{position:absolute; inset:0; display:none; background:var(--bg); z-index:30; flex-direction:column; padding:calc(env(safe-area-inset-top) + 18px) 20px calc(env(safe-area-inset-bottom) + 20px);}
@@ -222,12 +221,13 @@
 
     <div id="topBar">
       <div class="pill" id="timer"><span class="rec"></span><span id="timerText">00:00</span></div>
+      <div class="pill" id="speedPill">
+        <span class="lbl">Vel.</span>
+        <button type="button" class="stepBtn" id="speedMinus" aria-label="Bajar velocidad">−</button>
+        <span id="speedValue">4</span>
+        <button type="button" class="stepBtn" id="speedPlus" aria-label="Subir velocidad">+</button>
+      </div>
       <div id="closeBtn">✕</div>
-    </div>
-
-    <div id="speedStrip">
-      <div class="lbl">Vel.</div>
-      <input type="range" id="speed" min="1" max="10" value="4" orient="vertical">
     </div>
 
     <div id="bottomBar">
@@ -283,7 +283,9 @@
   const promptText = document.getElementById('promptText');
   const promptTrack = document.getElementById('promptTrack');
   const fontSizeEl = document.getElementById('fontSize');
-  const speedEl = document.getElementById('speed');
+  const speedMinusBtn = document.getElementById('speedMinus');
+  const speedPlusBtn = document.getElementById('speedPlus');
+  const speedValueEl = document.getElementById('speedValue');
   const recordBtn = document.getElementById('recordBtn');
   const flipBtn = document.getElementById('flipBtn');
   const closeBtn = document.getElementById('closeBtn');
@@ -347,6 +349,18 @@
   let recording = false;
   let scrollRAF = null;
   let scrollPos = 0;
+  const SPEED_MIN = 1, SPEED_MAX = 10;
+  let currentSpeed = parseInt(localStorage.getItem('telep_speed'), 10);
+  if(!Number.isFinite(currentSpeed) || currentSpeed < SPEED_MIN || currentSpeed > SPEED_MAX) currentSpeed = 4;
+  function renderSpeed(){ speedValueEl.textContent = currentSpeed; }
+  function setSpeed(v){
+    currentSpeed = Math.max(SPEED_MIN, Math.min(SPEED_MAX, v));
+    renderSpeed();
+    try{ localStorage.setItem('telep_speed', currentSpeed); }catch(e){}
+  }
+  renderSpeed();
+  speedMinusBtn.addEventListener('click', ()=> setSpeed(currentSpeed - 1));
+  speedPlusBtn.addEventListener('click', ()=> setSpeed(currentSpeed + 1));
   let timerInterval = null;
   let seconds = 0;
   let wakeLock = null;
@@ -591,7 +605,7 @@
 
   let scrollStartTimeout = null;
   function stepScroll(){
-    const speed = parseFloat(speedEl.value) * 0.35;
+    const speed = currentSpeed * 0.35;
     scrollPos += speed;
     promptTrack.style.transform = `translateY(-${scrollPos}px)`;
     scrollRAF = requestAnimationFrame(stepScroll);
