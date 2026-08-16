@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Teleprompter Cam</title>
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAAE/ElEQVR4nO3c7XHbRhSGUVCTblxBekgT7sLjAjTqIk2kh1SgepwfHjqUTBK7+NrFu+f8TqQl9ejqCoB1mTrw5fu3H63PwHrvr2+X1mdocgABj6FF4Id9QhGP7ai4d/0kIuaePePe5QMLmRJ7hP2y9QcUM6X2aGWz7xAhs8ZW03qTCS1m1tqqoVXfFUJmD2um9eIJLWb2sqatRUGLmb0tbaw6aDFzlCWtVQUtZo5W21xx0GKmlZr2ioIWM62VNjgbtJjpRUmLm9/6hpaeBm0605u5Jh8GLWZ69axNKwdR7gZtOtO7R43+FrSYOYt7rVo5iPIhaNOZs/ncrAlNFEET5VfQ1g3O6rZdE5oogibKyzRZNzi/a8MmNFEETRRBE+VifybJH60PkOrrX//O/jd///PnAScZi6A3UhLw3P8j8PUEvdKSkOc+lrCXE/RCW4b86GMLu56rHAvsGXOLz5NE0JWOjkzUdawchVqGZQUpZ0IX6GVK9nKOngmaKIKe0dtU7O08vRH0E73G0+u5eiDoB3qPpvfztSJoogj6jrNMv7Oc80iCJoqgPznb1DvbefcmaKK49V2h1a1nU7icCU0UQd846yQ867n3IGii2KErmIT9M6GJImiiCJoogiaKoIkiaKIImiiCJoqgieJOYQVP2/XPhCaKoIkiaKLYoSvYZftnQhNF0EQRNFEETRRBE0XQRBE0UQRNFEETRdBEceu7gsdH+2dCE0XQRBE0UezQFeyy/TOhiSJoogiaKIImiqCJImiiCJoogr7R6lmNtc567j0ImijuFFbwtF3/TGiiCPqTs+2jZzvv3gRNlMuX799+tD5Ej86wt5rOvzOhiSLoB3qffr2frxVBP9FrNL2eqweCntFbPL2dpzeCJoqgC/QyFXs5R8/c+i50janF5TwhlzOhKx0dl5jrCHqBoyITcz0rx0J7riBCXk7QK20ZtpDXE/RGPsdYEriAtyfonYi1Db8UEkXQRBE0UQRNFEETRdBEETRRBE0UQRNF0EQRNFEETRRBE0XQRBE0UeKDPsMfXTzKCO9F5F8fvfeFG/2B+1Hek5h/sTLC9Nna7XuWEnfEyiHm9VLew4igS6R8wZYY6bVHBJ3y47KllPcwIuhSI02qq9Fe81BBky/qsl3pNDrix2sPf2imp/fjKCY0UaKCLp00I+yVI07naQoLGuKCNqXHnc7TFBh0jcSoE19TjcigayZPUgA1ryVxOk9TaNDTNF7UYv4pNmjGFB30KFPadP5fdNDTlB+1mD+KecB/K9dAev/in/Gb7wgv769vl9aH2NuSOHsOZsnZev8G3cL769slfuW4SolazM9dpmmakp64m9NjpHsaKeahJvTVSF/gkV7r1cs0/Sy79UFgjWvDw01osgmaKL+CtnZwVrftmtBEETRRPgRt7eBsPjc75LMcZ35gacRryzXuTuSR7hyWah22kH93b6N4uGKI+r6jwxbyfY/W4yFXjjVuA9srbhEv9/SXQFO6Xm3k4q337OLF7FUNUdOTuStxrkMTZTZo16bpRUmLRRNa1LRW2mDxyiFqWqlpr2qHFjVHq22u+pdCUXOUJa0tusohava2tLHFl+1EzV7WtLVJlG6+sIUthuQmN1ZMa9baqqHNQzStqbH1MNz81rdpTak9Wtk1PtOae/YceodNU3GP7aif3E3WA3GPocX62cW+K/AMPfz+9B8mkKcs/muY+AAAAABJRU5ErkJggg==">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{
+    --bg:#0A0A0B;
+    --surface:#17181A;
+    --surface-2:#222327;
+    --text:#F5F5F0;
+    --muted:#8B8D93;
+    --tally:#E8362E;
+    --tally-dim:#8f2420;
+    --line:rgba(245,245,240,0.08);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    height:100%; margin:0; padding:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    overflow:hidden; overscroll-behavior:none;
+  }
+  #app{position:fixed; inset:0; display:flex; flex-direction:column;}
+
+  /* ---------- SETUP SCREEN ---------- */
+  #setup{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    padding: calc(env(safe-area-inset-top) + 18px) 20px calc(env(safe-area-inset-bottom) + 20px);
+    z-index:20; background:var(--bg);
+  }
+  .brand{display:flex; align-items:baseline; gap:8px; margin-bottom:2px;}
+  .brand .dot{width:9px; height:9px; border-radius:50%; background:var(--tally); box-shadow:0 0 8px var(--tally);}
+  .brand h1{font-size:20px; font-weight:700; letter-spacing:-0.01em; margin:0;}
+  .brand span{color:var(--muted); font-size:13px;}
+  .sub{color:var(--muted); font-size:13px; margin:2px 0 18px; line-height:1.4;}
+
+  textarea#script{
+    flex:1; width:100%; resize:none; border:1px solid var(--line); border-radius:14px;
+    background:var(--surface); color:var(--text); font-size:19px; line-height:1.5;
+    padding:16px; font-family:-apple-system, sans-serif; outline:none;
+  }
+  textarea#script::placeholder{color:#55565c;}
+
+  .row{display:flex; align-items:center; justify-content:space-between; margin-top:16px;}
+  .field{display:flex; flex-direction:column; gap:6px; flex:1;}
+  .field label{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted);}
+  input[type=range]{-webkit-appearance:none; width:100%; height:28px; background:transparent;}
+  input[type=range]::-webkit-slider-runnable-track{height:4px; background:var(--surface-2); border-radius:2px;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px; margin-top:-8px; border-radius:50%; background:var(--tally); border:2px solid var(--text);}
+
+  .toggles{display:flex; gap:10px; margin-top:16px;}
+  .toggle{
+    flex:1; border:1px solid var(--line); border-radius:12px; background:var(--surface);
+    padding:10px; text-align:center; font-size:13px; color:var(--muted);
+  }
+  .toggle.active{border-color:var(--tally); color:var(--text); background:rgba(232,54,46,0.12);}
+
+  #startBtn{
+    margin-top:18px; width:100%; padding:16px; border:none; border-radius:16px;
+    background:var(--text); color:#0A0A0B; font-size:17px; font-weight:700;
+    letter-spacing:-0.01em;
+  }
+  #startBtn:disabled{opacity:.35;}
+
+  /* ---------- CAMERA SCREEN ---------- */
+  #stage{position:absolute; inset:0; display:none; background:#000;}
+  #stage.on{display:block;}
+  video#preview{width:100%; height:100%; object-fit:cover; background:#000;}
+
+  #promptOverlay{
+    position:absolute; left:0; right:0;
+    bottom:calc(env(safe-area-inset-bottom) + 118px);
+    height:42%; overflow:hidden;
+    background:linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.35) 70%, rgba(0,0,0,0) 100%);
+    pointer-events:none;
+  }
+  #promptTrack{
+    position:absolute; left:0; right:0; padding:20px 24px 40px; will-change:transform;
+    transform: translateY(0px);
+  }
+  .promptText{
+    font-size:26px; line-height:1.55; font-weight:600; color:#fff;
+    text-shadow:0 1px 6px rgba(0,0,0,0.6); white-space:pre-wrap;
+  }
+
+  #topBar{
+    position:absolute; top:calc(env(safe-area-inset-top) + 10px); left:16px; right:16px;
+    display:flex; justify-content:space-between; align-items:center; z-index:5;
+  }
+  .pill{
+    display:flex; align-items:center; gap:6px; background:rgba(23,24,26,0.7);
+    backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:20px;
+    padding:8px 12px; font-size:13px; color:var(--text);
+  }
+  #timer{font-variant-numeric:tabular-nums; font-weight:600;}
+  #timer .rec{width:8px; height:8px; border-radius:50%; background:var(--tally); display:inline-block; margin-right:6px;}
+  #timer.hidden-rec .rec{opacity:0;}
+  #closeBtn{width:34px; height:34px; border-radius:50%; background:rgba(23,24,26,0.7); border:1px solid var(--line); color:var(--text); font-size:16px; display:flex; align-items:center; justify-content:center;}
+
+  #bottomBar{
+    position:absolute; left:0; right:0; bottom:calc(env(safe-area-inset-bottom) + 18px);
+    display:flex; align-items:center; justify-content:space-between; padding:0 30px; z-index:5;
+  }
+  .sideBtn{
+    width:54px; height:54px; border-radius:50%;
+    background:linear-gradient(160deg, rgba(34,35,39,0.85), rgba(20,21,23,0.85));
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border:1px solid rgba(245,245,240,0.14);
+    box-shadow:0 4px 14px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+    color:var(--text); display:flex; align-items:center; justify-content:center;
+    transition:transform .12s ease, background .12s ease;
+  }
+  .sideBtn svg{width:24px; height:24px;}
+  .sideBtn:active{transform:scale(0.90); background:rgba(20,21,23,0.95);}
+  .sideCol{display:flex; flex-direction:column; align-items:center; gap:7px;}
+  .sideCol .sideLbl{font-size:10px; color:var(--muted); letter-spacing:.03em;}
+  #recordBtn{
+    width:76px; height:76px; border-radius:50%; border:4px solid rgba(255,255,255,0.85);
+    background:rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 18px rgba(0,0,0,0.4);
+  }
+  #recordBtn .core{width:60px; height:60px; border-radius:50%; background:var(--tally); transition:all .2s;}
+  #recordBtn.recording .core{width:26px; height:26px; border-radius:8px;}
+
+  #speedPill{gap:2px; padding:6px;}
+  #speedPill .lbl{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; padding:0 4px 0 6px;}
+  .stepBtn{
+    -webkit-appearance:none; appearance:none; border:none; width:30px; height:30px; border-radius:50%;
+    background:rgba(245,245,240,0.10); color:var(--text); font-size:18px; font-weight:700; line-height:1;
+    display:flex; align-items:center; justify-content:center; font-family:inherit; padding:0;
+  }
+  .stepBtn:active{background:var(--tally); transform:scale(0.92);}
+  #speedValue{
+    min-width:22px; text-align:center; font-variant-numeric:tabular-nums; font-weight:700; font-size:15px;
+  }
+
+  /* ---------- RESULT SCREEN ---------- */
+  #result{position:absolute; inset:0; display:none; background:var(--bg); z-index:30; flex-direction:column; padding:calc(env(safe-area-inset-top) + 18px) 20px calc(env(safe-area-inset-bottom) + 20px);}
+  #result.on{display:flex;}
+  #result h2{font-size:19px; margin:0 0 4px;}
+  #result p{color:var(--muted); font-size:13px; margin:0 0 16px;}
+  video#playback{width:100%; height:100%; flex:1; min-width:0; min-height:0; border-radius:16px; background:#000; object-fit:contain;}
+  #playbackWrap{position:relative; flex:1; min-height:0; display:flex; align-items:stretch;}
+  #playToggle{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:64px; height:64px; border-radius:50%; background:rgba(50,51,56,0.85);
+    backdrop-filter:blur(10px); border:1px solid rgba(245,245,240,0.25); display:flex; align-items:center; justify-content:center;
+    transition:opacity .15s; z-index:2;
+  }
+  #playToggle svg{width:28px; height:28px; fill:#fff;}
+  #playToggle.hidden{opacity:0; pointer-events:none;}
+  .resultActions{display:flex; gap:12px; margin-top:16px;}
+  .segPicker{display:none; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:4px;}
+  .segPicker.on{display:flex;}
+  .segPill{
+    flex:none; padding:8px 14px; border-radius:20px; font-size:13px; font-weight:600;
+    background:var(--surface); color:var(--muted); border:1px solid var(--line); white-space:nowrap;
+  }
+  .segPill.active{background:var(--tally); color:#fff; border-color:var(--tally);}
+  .resultActions button, .resultActions a{
+    flex:1; text-align:center; padding:15px; border-radius:14px; font-size:15px; font-weight:700;
+    border:none; text-decoration:none; display:block; -webkit-appearance:none; appearance:none;
+    font-family:inherit; cursor:pointer;
+  }
+  #saveBtn{background:var(--text); color:#0A0A0B;}
+  #discardBtn{background:var(--surface); color:var(--text); border:1px solid var(--line);}
+
+  .hint{font-size:12px; color:var(--muted); text-align:center; margin-top:10px; line-height:1.5;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- SETUP -->
+  <div id="setup">
+    <div class="brand"><span class="dot"></span><h1>Teleprompter Cam</h1></div>
+    <div class="sub">Escribe o pega tu guion. Se desplazará sobre la vista de la cámara mientras grabas.</div>
+    <textarea id="script" placeholder="Escribe aquí tu guion…"></textarea>
+
+    <div class="row">
+      <div class="field">
+        <label>Tamaño de texto</label>
+        <input type="range" id="fontSize" min="18" max="40" value="26">
+      </div>
+    </div>
+
+    <div class="toggles">
+      <div class="toggle active" id="toggleMirror">Espejo: No</div>
+      <div class="toggle" id="toggleFront">Cámara: Trasera</div>
+    </div>
+
+    <div class="row" style="margin-top:14px;">
+      <div class="field">
+        <label>Calidad de video</label>
+        <select id="qualitySel" style="width:100%; background:var(--surface); color:var(--text); border:1px solid var(--line); border-radius:12px; padding:12px; font-size:15px;">
+          <option value="1080p30">1080p · 30 fps (recomendado)</option>
+          <option value="1080p60">1080p · 60 fps (más fluido)</option>
+          <option value="4k30">4K · 30 fps (más nítido, más pesado)</option>
+          <option value="720p30">720p · 30 fps (más liviano)</option>
+        </select>
+      </div>
+    </div>
+    <div class="hint" style="text-align:left;">Nota: el Modo Cinemático real de la app Cámara de Apple no está disponible para apps web — esta es la mejor calidad que Safari permite controlar.</div>
+
+    <button id="startBtn">Abrir cámara</button>
+    <div class="hint">La primera vez, Safari te pedirá permiso de cámara y micrófono — acepta ambos.</div>
+  </div>
+
+  <!-- CAMERA STAGE -->
+  <div id="stage">
+    <video id="preview" autoplay playsinline muted></video>
+    <canvas id="captureCanvas" style="display:none;"></canvas>
+
+    <div id="promptOverlay">
+      <div id="promptTrack"><div class="promptText" id="promptText"></div></div>
+    </div>
+
+    <div id="topBar">
+      <div class="pill" id="timer"><span class="rec"></span><span id="timerText">00:00</span></div>
+      <div class="pill" id="speedPill">
+        <span class="lbl">Vel.</span>
+        <button type="button" class="stepBtn" id="speedMinus" aria-label="Bajar velocidad">−</button>
+        <span id="speedValue">4</span>
+        <button type="button" class="stepBtn" id="speedPlus" aria-label="Subir velocidad">+</button>
+      </div>
+      <div id="closeBtn">✕</div>
+    </div>
+
+    <div id="bottomBar">
+      <div class="sideCol">
+        <div class="sideBtn" id="flipBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+            <path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          </svg>
+        </div>
+        <span class="sideLbl">Cámara</span>
+      </div>
+      <div id="recordBtn"><div class="core"></div></div>
+      <div class="sideCol">
+        <div class="sideBtn" id="restartPromptBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>
+          </svg>
+        </div>
+        <span class="sideLbl">Guion</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result">
+    <h2 id="resultTitle">Video listo</h2>
+    <p id="resultSub">Toca "Guardar en Fotos" y elige "Guardar video" en el panel que aparece — va directo a tu carrete.</p>
+    <div id="segmentPicker" class="segPicker"></div>
+    <div id="playbackWrap">
+      <video id="playback" playsinline webkit-playsinline disablePictureInPicture></video>
+      <div id="playToggle">
+        <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </div>
+    </div>
+    <div class="resultActions">
+      <button id="discardBtn">Descartar</button>
+      <button id="saveBtn">Guardar en Fotos</button>
+    </div>
+    <button id="saveAllBtn" style="display:none; margin-top:10px; width:100%; padding:13px; border-radius:14px; font-size:14px; font-weight:700; background:var(--surface); color:var(--text); border:1px solid var(--line); -webkit-appearance:none;">Guardar todas las tomas juntas</button>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const setup = document.getElementById('setup');
+  const stage = document.getElementById('stage');
+  const result = document.getElementById('result');
+  const scriptEl = document.getElementById('script');
+  const startBtn = document.getElementById('startBtn');
+  const preview = document.getElementById('preview');
+  const promptText = document.getElementById('promptText');
+  const promptTrack = document.getElementById('promptTrack');
+  const fontSizeEl = document.getElementById('fontSize');
+  const speedMinusBtn = document.getElementById('speedMinus');
+  const speedPlusBtn = document.getElementById('speedPlus');
+  const speedValueEl = document.getElementById('speedValue');
+  const recordBtn = document.getElementById('recordBtn');
+  const flipBtn = document.getElementById('flipBtn');
+  const closeBtn = document.getElementById('closeBtn');
+  const restartPromptBtn = document.getElementById('restartPromptBtn');
+  const timerText = document.getElementById('timerText');
+  const timerPill = document.getElementById('timer');
+  const toggleMirror = document.getElementById('toggleMirror');
+  const toggleFront = document.getElementById('toggleFront');
+  const playback = document.getElementById('playback');
+  const playToggle = document.getElementById('playToggle');
+  const playIcon = document.getElementById('playIcon');
+  const saveBtn = document.getElementById('saveBtn');
+  const discardBtn = document.getElementById('discardBtn');
+  const resultTitle = document.getElementById('resultTitle');
+  const resultSub = document.getElementById('resultSub');
+  const segmentPicker = document.getElementById('segmentPicker');
+  const saveAllBtn = document.getElementById('saveAllBtn');
+
+  let currentSegments = [];
+  let currentSegIdx = 0;
+
+  function renderSegmentPicker(){
+    segmentPicker.classList.toggle('on', currentSegments.length > 1);
+    saveAllBtn.style.display = currentSegments.length > 1 ? 'block' : 'none';
+    segmentPicker.innerHTML = '';
+    currentSegments.forEach((seg, i)=>{
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'segPill' + (i === currentSegIdx ? ' active' : '');
+      b.textContent = 'Toma ' + seg.index;
+      b.addEventListener('click', ()=> selectSegment(i));
+      segmentPicker.appendChild(b);
+    });
+  }
+
+  function selectSegment(i){
+    currentSegIdx = i;
+    const seg = currentSegments[i];
+    pendingBlob = seg.blob;
+    pendingType = seg.type;
+    playback.pause();
+    playback.src = URL.createObjectURL(seg.blob);
+    renderSegmentPicker();
+  }
+
+  function buildSegmentPicker(segs){
+    currentSegments = segs.slice();
+    selectSegment(0);
+  }
+
+  const qualitySel = document.getElementById('qualitySel');
+
+  let pendingBlob = null;
+  let pendingType = 'video/mp4';
+
+  let stream = null;
+  let mediaRecorder = null;
+  let chunks = [];
+  let facingMode = 'environment';
+  let mirrored = false;
+  let recording = false;
+  let scrollRAF = null;
+  let scrollPos = 0;
+  const SPEED_MIN = 1, SPEED_MAX = 10;
+  let currentSpeed = parseInt(localStorage.getItem('telep_speed'), 10);
+  if(!Number.isFinite(currentSpeed) || currentSpeed < SPEED_MIN || currentSpeed > SPEED_MAX) currentSpeed = 4;
+  function renderSpeed(){ speedValueEl.textContent = currentSpeed; }
+  function setSpeed(v){
+    currentSpeed = Math.max(SPEED_MIN, Math.min(SPEED_MAX, v));
+    renderSpeed();
+    try{ localStorage.setItem('telep_speed', currentSpeed); }catch(e){}
+  }
+  renderSpeed();
+  speedMinusBtn.addEventListener('click', ()=> setSpeed(currentSpeed - 1));
+  speedPlusBtn.addEventListener('click', ()=> setSpeed(currentSpeed + 1));
+  let timerInterval = null;
+  let seconds = 0;
+  let wakeLock = null;
+  let videoTrack = null;
+  let freezeWatchTimer = null;
+  let stalled = false;
+
+  const QUALITY = {
+    '720p30':  { width:{ideal:1280}, height:{ideal:720},  frameRate:{ideal:30} },
+    '1080p30': { width:{ideal:1920}, height:{ideal:1080}, frameRate:{ideal:30} },
+    '1080p60': { width:{ideal:1920}, height:{ideal:1080}, frameRate:{ideal:60} },
+    '4k30':    { width:{ideal:3840}, height:{ideal:2160}, frameRate:{ideal:30} }
+  };
+
+  // ---- Respaldo local (para no perder el video si se cierra la app) ----
+  const DB_NAME = 'telepBackupDB';
+  const STORE = 'recordings';
+  function openBackupDB(){
+    return new Promise((resolve, reject)=>{
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = ()=>{ req.result.createObjectStore(STORE); };
+      req.onsuccess = ()=> resolve(req.result);
+      req.onerror = ()=> reject(req.error);
+    });
+  }
+  async function saveBackupSegments(segs){
+    try{
+      const db = await openBackupDB();
+      await new Promise((resolve, reject)=>{
+        const tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).put({segments: segs}, 'last');
+        tx.oncomplete = resolve;
+        tx.onerror = ()=> reject(tx.error);
+      });
+    }catch(e){ console.warn('No se pudo respaldar el video localmente', e); }
+  }
+  async function loadBackup(){
+    try{
+      const db = await openBackupDB();
+      return await new Promise((resolve, reject)=>{
+        const tx = db.transaction(STORE, 'readonly');
+        const req = tx.objectStore(STORE).get('last');
+        req.onsuccess = ()=> resolve(req.result || null);
+        req.onerror = ()=> reject(req.error);
+      });
+    }catch(e){ console.warn(e); return null; }
+  }
+  async function clearBackup(){
+    try{
+      const db = await openBackupDB();
+      await new Promise((resolve, reject)=>{
+        const tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).delete('last');
+        tx.oncomplete = resolve;
+        tx.onerror = ()=> reject(tx.error);
+      });
+    }catch(e){ console.warn(e); }
+  }
+
+  // ---- Compartir nativo (abre el panel de iOS con "Guardar video") ----
+  async function tryNativeShare(blob, filename){
+    try{
+      if(navigator.canShare && navigator.share){
+        const file = new File([blob], filename, {type: blob.type});
+        if(navigator.canShare({files:[file]})){
+          await navigator.share({files:[file]});
+          return true;
+        }
+      }
+    }catch(e){
+      if(e && e.name === 'AbortError') return true; // el usuario cerró el panel, no es error
+      console.warn('Share falló, uso alternativa', e);
+    }
+    return false;
+  }
+
+  const PLAY_PATH = '<path d="M8 5v14l11-7z"/>';
+  const PAUSE_PATH = '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>';
+
+  playToggle.addEventListener('click', ()=>{
+    if(playback.paused){ playback.play(); } else { playback.pause(); }
+  });
+  playback.addEventListener('play', ()=>{
+    playIcon.innerHTML = PAUSE_PATH;
+    playToggle.classList.add('hidden');
+  });
+  playback.addEventListener('pause', ()=>{
+    playIcon.innerHTML = PLAY_PATH;
+    playToggle.classList.remove('hidden');
+  });
+  playback.addEventListener('ended', ()=>{
+    playIcon.innerHTML = PLAY_PATH;
+    playToggle.classList.remove('hidden');
+  });
+
+  async function requestWakeLock(){
+    try{
+      if('wakeLock' in navigator){
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', ()=>{ wakeLock = null; });
+      }
+    }catch(e){ console.warn('Wake lock no disponible', e); }
+  }
+  async function releaseWakeLock(){
+    try{ if(wakeLock){ await wakeLock.release(); wakeLock = null; } }catch(e){}
+  }
+  document.addEventListener('visibilitychange', async ()=>{
+    if(document.visibilityState === 'visible' && recording && !wakeLock){
+      await requestWakeLock();
+    }
+  });
+
+  toggleMirror.addEventListener('click', ()=>{
+    mirrored = !mirrored;
+    toggleMirror.textContent = 'Espejo: ' + (mirrored ? 'Sí' : 'No');
+    toggleMirror.classList.toggle('active', mirrored);
+  });
+  toggleFront.addEventListener('click', ()=>{
+    facingMode = facingMode === 'environment' ? 'user' : 'environment';
+    toggleFront.textContent = 'Cámara: ' + (facingMode === 'user' ? 'Frontal' : 'Trasera');
+    toggleFront.classList.toggle('active', facingMode === 'user');
+  });
+
+  fontSizeEl.addEventListener('input', ()=>{
+    promptText.style.fontSize = fontSizeEl.value + 'px';
+  });
+
+  const captureCanvas = document.getElementById('captureCanvas');
+  const captureCtx = captureCanvas.getContext('2d', {alpha:false});
+  let canvasStream = null;
+  let drawLoopActive = false;
+
+  function drawLoop(){
+    if(!drawLoopActive) return;
+    if(preview.videoWidth){
+      if(captureCanvas.width !== preview.videoWidth || captureCanvas.height !== preview.videoHeight){
+        captureCanvas.width = preview.videoWidth;
+        captureCanvas.height = preview.videoHeight;
+      }
+      try{ captureCtx.drawImage(preview, 0, 0, captureCanvas.width, captureCanvas.height); }catch(e){}
+    }
+    requestAnimationFrame(drawLoop);
+  }
+
+  function startCanvasCapture(){
+    stopCanvasCapture();
+    captureCanvas.width = preview.videoWidth || 1280;
+    captureCanvas.height = preview.videoHeight || 720;
+    drawLoopActive = true;
+    drawLoop();
+    canvasStream = captureCanvas.captureStream(30);
+  }
+
+  function stopCanvasCapture(){
+    drawLoopActive = false;
+    if(canvasStream){ canvasStream.getTracks().forEach(t=>t.stop()); canvasStream = null; }
+  }
+
+  // Lo que graba el MediaRecorder: video del canvas (siempre fresco) + audio real del micrófono.
+  function getRecordingStream(){
+    if(canvasStream && stream){
+      return new MediaStream([...canvasStream.getVideoTracks(), ...stream.getAudioTracks()]);
+    }
+    return stream;
+  }
+
+  async function openCamera(){
+    try{
+      if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+      stopCanvasCapture();
+      const q = QUALITY[qualitySel.value] || QUALITY['1080p30'];
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: Object.assign({ facingMode: facingMode }, q),
+        audio: true
+      });
+      preview.srcObject = stream;
+      preview.style.transform = (facingMode === 'user') ? 'scaleX(-1)' : 'none';
+      videoTrack = stream.getVideoTracks()[0] || null;
+      if(videoTrack){
+        videoTrack.onmute = handleTrackFreeze;
+        videoTrack.onended = handleTrackFreeze;
+      }
+      await new Promise((resolve)=>{
+        if(preview.readyState >= 1 && preview.videoWidth){ resolve(); return; }
+        preview.onloadedmetadata = ()=> resolve();
+        setTimeout(resolve, 1500); // por si el evento no llega, no bloquear para siempre
+      });
+      startCanvasCapture();
+    }catch(err){
+      alert('No se pudo acceder a la cámara/micrófono con esa calidad. Prueba con una calidad menor, o revisa los permisos de Safari para este sitio en Ajustes.');
+      console.error(err);
+    }
+  }
+
+  function handleTrackFreeze(){
+    if(!recording) return;
+    if(stalled) return;
+    stalled = true;
+    recording = false;
+    clearTimeout(segmentTimer);
+    if(mediaRecorder && mediaRecorder.state === 'recording'){
+      mediaRecorder.stop();
+    }
+    recordBtn.classList.remove('recording');
+    stopTimer();
+    cancelAnimationFrame(scrollRAF);
+    releaseWakeLock();
+    setTimeout(()=>{
+      alert('Se perdió la señal de video a mitad de la grabación (esto puede pasar si la pantalla se bloqueó o el iPhone entró en ahorro de energía). Se guardó lo grabado hasta ese momento.');
+    }, 300);
+  }
+
+  startBtn.addEventListener('click', async ()=>{
+    promptText.textContent = scriptEl.value.trim() || '(Sin guion — solo grabación de cámara)';
+    promptText.style.fontSize = fontSizeEl.value + 'px';
+    promptText.style.transform = mirrored ? 'scaleX(-1)' : 'none';
+    setup.style.display = 'none';
+    stage.classList.add('on');
+    await openCamera();
+  });
+
+  flipBtn.addEventListener('click', async ()=>{
+    facingMode = facingMode === 'environment' ? 'user' : 'environment';
+    await openCamera();
+  });
+
+  closeBtn.addEventListener('click', ()=>{
+    if(recording) return;
+    stopCameraHardware();
+    stage.classList.remove('on');
+    setup.style.display = 'flex';
+    resetPrompt();
+  });
+
+  function resetPrompt(){
+    scrollPos = 0;
+    promptTrack.style.transform = 'translateY(0px)';
+    cancelAnimationFrame(scrollRAF);
+    clearTimeout(scrollStartTimeout);
+  }
+  restartPromptBtn.addEventListener('click', resetPrompt);
+
+  let scrollStartTimeout = null;
+  function stepScroll(){
+    const speed = currentSpeed * 0.35;
+    scrollPos += speed;
+    promptTrack.style.transform = `translateY(-${scrollPos}px)`;
+    scrollRAF = requestAnimationFrame(stepScroll);
+  }
+  function beginScrollWithHold(){
+    clearTimeout(scrollStartTimeout);
+    scrollStartTimeout = setTimeout(()=>{
+      if(recording) stepScroll();
+    }, 1600);
+  }
+
+  function startTimer(){
+    seconds = 0;
+    timerText.textContent = '00:00';
+    timerPill.classList.remove('hidden-rec');
+    timerInterval = setInterval(()=>{
+      seconds++;
+      const m = String(Math.floor(seconds/60)).padStart(2,'0');
+      const s = String(seconds%60).padStart(2,'0');
+      timerText.textContent = `${m}:${s}`;
+    }, 1000);
+  }
+  function stopTimer(){
+    clearInterval(timerInterval);
+    timerPill.classList.add('hidden-rec');
+  }
+
+  function pickMimeType(){
+    const candidates = ['video/mp4', 'video/mp4;codecs=h264,aac', 'video/webm;codecs=vp9', 'video/webm'];
+    for(const c of candidates){
+      if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)) return c;
+    }
+    return '';
+  }
+
+  let segments = [];
+  let segmentTimer = null;
+  let segIndex = 0;
+  const SEGMENT_MS = 10000;
+
+  function startSegment(){
+    chunks = [];
+    const mimeType = pickMimeType();
+    const recStream = getRecordingStream();
+    try{
+      mediaRecorder = mimeType ? new MediaRecorder(recStream, {mimeType}) : new MediaRecorder(recStream);
+    }catch(e){
+      mediaRecorder = new MediaRecorder(recStream);
+    }
+    mediaRecorder.ondataavailable = (e)=>{ if(e.data && e.data.size > 0) chunks.push(e.data); };
+    mediaRecorder.onstop = onSegmentStop;
+    mediaRecorder.start();
+    segmentTimer = setTimeout(()=>{
+      if(recording && mediaRecorder && mediaRecorder.state === 'recording'){
+        mediaRecorder.stop(); // cuts this segment; onSegmentStop starts the next one if still recording
+      }
+    }, SEGMENT_MS);
+  }
+
+  function onSegmentStop(){
+    const type = mediaRecorder.mimeType || 'video/mp4';
+    const blob = new Blob(chunks, {type});
+    segIndex += 1;
+    const seg = { blob, type, index: segIndex };
+    segments.push(seg);
+    saveBackupSegments(segments);
+    if(recording){
+      startSegment(); // sigue grabando en una toma nueva, sin cortar la experiencia del usuario
+    } else {
+      finishRecording();
+    }
+  }
+
+  recordBtn.addEventListener('click', async ()=>{
+    if(!stream) return;
+    if(!recording){
+      segments = [];
+      segIndex = 0;
+      stalled = false;
+      recording = true;
+      recordBtn.classList.add('recording');
+      startTimer();
+      scrollPos = 0;
+      promptTrack.style.transform = 'translateY(0px)';
+      beginScrollWithHold();
+      await requestWakeLock();
+      startSegment();
+    } else {
+      recording = false;
+      recordBtn.classList.remove('recording');
+      stopTimer();
+      clearTimeout(scrollStartTimeout);
+      clearTimeout(segmentTimer);
+      cancelAnimationFrame(scrollRAF);
+      await releaseWakeLock();
+      if(mediaRecorder && mediaRecorder.state === 'recording'){
+        mediaRecorder.stop(); // dispara onSegmentStop -> finishRecording (recording ya es false)
+      } else {
+        finishRecording();
+      }
+    }
+  });
+
+  function stopCameraHardware(){
+    stopCanvasCapture();
+    if(stream){
+      stream.getTracks().forEach(t=>t.stop());
+      stream = null;
+      videoTrack = null;
+      preview.srcObject = null;
+    }
+  }
+
+  function finishRecording(){
+    releaseWakeLock();
+    stopCameraHardware();
+    const usable = segments.filter(s => s.blob && s.blob.size > 0);
+    if(usable.length === 0){
+      alert('No se guardó ningún video — puede que la grabación se haya cortado demasiado rápido. Intenta de nuevo.');
+      stage.classList.remove('on');
+      setup.style.display = 'flex';
+      return;
+    }
+    if(usable.length === 1){
+      resultTitle.textContent = 'Video listo';
+      resultSub.textContent = 'Toca "Guardar en Fotos" y elige "Guardar video" en el panel que aparece — va directo a tu carrete.';
+    } else {
+      resultTitle.textContent = `Se guardó en ${usable.length} tomas de ~10s`;
+      resultSub.textContent = 'Grabaste más de 10 segundos, así que se dividió en tomas cortas por seguridad (si una se traba, no pierdes las demás). Revisa y guarda cada una.';
+    }
+    buildSegmentPicker(usable);
+    saveBackupSegments(usable);
+    stage.classList.remove('on');
+    result.classList.add('on');
+  }
+
+  function exitToStartOrCamera(){
+    result.classList.remove('on');
+    playback.pause();
+    playback.removeAttribute('src');
+    playback.load();
+    if(stream){
+      stage.classList.add('on');
+    } else {
+      setup.style.display = 'flex';
+      resetPrompt();
+    }
+  }
+
+  saveAllBtn.addEventListener('click', async ()=>{
+    if(currentSegments.length === 0) return;
+    saveAllBtn.textContent = 'Abriendo…';
+    try{
+      const files = currentSegments.map((seg, i)=>{
+        const ext = (seg.type || 'video/mp4').includes('mp4') ? 'mp4' : 'webm';
+        return new File([seg.blob], `teleprompter-toma${seg.index}.${ext}`, {type: seg.type});
+      });
+      let shared = false;
+      if(navigator.canShare && navigator.share && navigator.canShare({files})){
+        await navigator.share({files});
+        shared = true;
+      }
+      if(!shared){
+        alert('Tu iPhone no permite compartir varias a la vez desde aquí. Guarda las tomas una por una con el botón "Guardar en Fotos".');
+        saveAllBtn.textContent = 'Guardar todas las tomas juntas';
+        return;
+      }
+      await clearBackup();
+      currentSegments = [];
+      segments = [];
+      pendingBlob = null;
+      result.classList.remove('on');
+      setup.style.display = 'flex';
+      stage.classList.remove('on');
+      if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+      resetPrompt();
+    }catch(e){
+      if(e && e.name !== 'AbortError') console.warn('Error al compartir varias tomas', e);
+      saveAllBtn.textContent = 'Guardar todas las tomas juntas';
+    }
+  });
+
+  discardBtn.addEventListener('click', async ()=>{
+    currentSegments.splice(currentSegIdx, 1);
+    segments = currentSegments;
+    if(currentSegments.length === 0){
+      await clearBackup();
+      pendingBlob = null;
+      exitToStartOrCamera();
+    } else {
+      currentSegIdx = Math.min(currentSegIdx, currentSegments.length - 1);
+      selectSegment(currentSegIdx);
+      await saveBackupSegments(currentSegments);
+    }
+  });
+
+  saveBtn.addEventListener('click', async ()=>{
+    if(!pendingBlob) return;
+    saveBtn.textContent = 'Abriendo…';
+    const ext = pendingType.includes('mp4') ? 'mp4' : 'webm';
+    const takeNum = (currentSegments[currentSegIdx] && currentSegments[currentSegIdx].index) || 1;
+    const filename = 'teleprompter-' + Date.now() + '-toma' + takeNum + '.' + ext;
+    const shared = await tryNativeShare(pendingBlob, filename);
+    if(!shared){
+      const url = URL.createObjectURL(pendingBlob);
+      window.open(url, '_blank');
+      alert('Se abrió el video en una pestaña nueva. Mantén el dedo presionado sobre el video y elige "Guardar video" para mandarlo a Fotos.');
+    }
+    saveBtn.textContent = 'Guardar en Fotos';
+    currentSegments.splice(currentSegIdx, 1);
+    segments = currentSegments;
+    if(currentSegments.length === 0){
+      await clearBackup();
+      pendingBlob = null;
+      result.classList.remove('on');
+      setup.style.display = 'flex';
+      stage.classList.remove('on');
+      if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+      resetPrompt();
+    } else {
+      currentSegIdx = Math.min(currentSegIdx, currentSegments.length - 1);
+      selectSegment(currentSegIdx);
+      await saveBackupSegments(currentSegments);
+    }
+  });
+
+  // ---- Al abrir la app, revisa si quedaron tomas sin guardar de una sesión anterior ----
+  (async function checkRecovery(){
+    const record = await loadBackup();
+    if(record && record.segments && record.segments.length){
+      const usable = record.segments;
+      resultTitle.textContent = usable.length > 1
+        ? `Recuperamos ${usable.length} tomas sin guardar`
+        : 'Recuperamos tu último video';
+      resultSub.textContent = 'No se había guardado antes de cerrar la app. Revísalo y guárdalo en Fotos.';
+      setup.style.display = 'none';
+      buildSegmentPicker(usable);
+      result.classList.add('on');
+    }
+  })();
+
+})();
+</script>
+</body>
+</html>
